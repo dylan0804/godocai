@@ -5,7 +5,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/dylan0804/godocai/pkg/search"
+	"github.com/dylan0804/godocai/search"
 )
 
 type searchResultsMsg struct {
@@ -20,9 +20,17 @@ func searchPackages(query string) tea.Cmd {
 	}
 }
 
+type ViewState int
+
+const (
+	StateInput ViewState = iota
+	StateResults
+)
+
 type AppModel struct {
-	input   InputModel
+	input   *InputModel
 	results ResultsModel
+	state   ViewState
 	status  string
 	width   int
 	height  int
@@ -33,7 +41,6 @@ func NewAppModel() AppModel {
 	return AppModel{
 		input:   NewInputModel(),
 		results: NewResultsModel(),
-		status:  "Type to search for Go packages",
 	}
 }
 
@@ -74,15 +81,13 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case searchResultsMsg:
 		m.loading = false
+		m.status = ""
+		m.input.textInput.Blur()
+		m.state = StateResults
 		if msg.err != nil {
 			m.status = fmt.Sprintf("Error: %s", msg.err)
 		} else {
-			if len(msg.results) == 0 {
-				m.status = "No results found"
-			} else {
-				m.status = fmt.Sprintf("Found %d results", len(msg.results))
-			}
-			m.results.results.SetItems(msg.results)
+			m.results.results.SetItems(msg.results) 
 		}
 	}
 
@@ -99,14 +104,17 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m AppModel) View() string {
-	inputView := m.input.View()
-	resultsView := m.results.View()
-	statusView := StatusMessageStyle(m.status)
+	var content string
 
-	return DocStyle.Render(
-		TitleStyle.Render("Go Package Search") + "\n\n" +
-		inputView + "\n" +
-		resultsView + "\n" +
-		statusView,
-	)
+	header := TitleStyle.Render("Go Package Search") + "\n\n" +
+			InputPromptStyle.Render() + m.input.View() + "\n\n"
+	
+	switch m.state {
+	case StateInput:
+		content = header + StatusMessageStyle(m.status)
+	case StateResults:
+		content = header + m.results.View()
+	}
+
+	return DocStyle.Render(content)
 } 
