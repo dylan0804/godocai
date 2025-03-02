@@ -1,6 +1,7 @@
 package search
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 
@@ -12,6 +13,7 @@ type Result struct {
     title       string
     Example     string
     Synopsis    string
+	Link        string
 }
 
 func (r Result) Title() string { return r.title }
@@ -24,6 +26,7 @@ func Search(term string) ([]list.Item, error) {
 
 	c.OnHTML(".SearchSnippet", func(e *colly.HTMLElement) {
 		rawTitle := e.ChildText(".SearchSnippet-headerContainer h2")
+		link := e.ChildAttr(".SearchSnippet-headerContainer h2 a:first-of-type", "href")
 
 		cleanTitle := strings.Join(strings.Fields(rawTitle), " ")
 
@@ -35,6 +38,7 @@ func Search(term string) ([]list.Item, error) {
 			title:       cleanTitle,
 			Synopsis:    synopsis,
 			Example:     example,
+			Link:        link,
 		})
 	})
 
@@ -43,3 +47,11 @@ func Search(term string) ([]list.Item, error) {
 	
 	return results, err
 } 
+
+func GetPackageInfo(packageLink string) {
+	c := colly.NewCollector()
+
+	fmt.Println("https://pkg.go.dev/" + packageLink)
+
+	c.Visit("https://pkg.go.dev/" + packageLink)
+}

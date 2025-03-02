@@ -20,11 +20,20 @@ func searchPackages(query string) tea.Cmd {
 	}
 }
 
+func getPackageInfo(link string) tea.Cmd {
+	return func() tea.Msg {
+		search.GetPackageInfo(link)
+		fmt.Println("Package info fetched")
+		return nil
+	}
+}
+
 type ViewState int
 
 const (
 	StateInput ViewState = iota
 	StateResults
+	StateDetail
 )
 
 type AppModel struct {
@@ -41,6 +50,7 @@ func NewAppModel() AppModel {
 	return AppModel{
 		input:   NewInputModel(),
 		results: NewResultsModel(),
+		state:   StateInput,
 	}
 }
 
@@ -52,55 +62,66 @@ func (m AppModel) Init() tea.Cmd {
 }
 
 func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var cmds []tea.Cmd
-
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyCtrlC, tea.KeyEsc:
-			return m, tea.Quit
-		case tea.KeyEnter:
-			if m.loading || m.input.Value() == "" {
-				return m, nil
-			}
-			
-			m.loading = true
-			m.status = "Searching..."
-			
-			return m, searchPackages(m.input.Value())
-		}
-
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
 		
-		var cmd tea.Cmd
 		m.input = m.input.SetWidth(m.width)
+		
+		var cmd tea.Cmd
 		m.results, cmd = m.results.Update(msg)
-		cmds = append(cmds, cmd)
-
+		return m, cmd
+		
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyCtrlC, tea.KeyEsc:
+			return m, tea.Quit
+		}
+		
+	case ItemSelectedMsg:
+		m.state = StateDetail
+		return m, nil
+		
+	case InputSubmitMsg:
+		if m.loading || msg.Value == "" {
+			return m, nil
+		}
+		
+		m.loading = true
+		m.status = "Searching..."
+		return m, searchPackages(msg.Value)
+		
 	case searchResultsMsg:
 		m.loading = false
 		m.status = ""
-		m.input.textInput.Blur()
 		m.state = StateResults
+		
 		if msg.err != nil {
 			m.status = fmt.Sprintf("Error: %s", msg.err)
 		} else {
-			m.results.results.SetItems(msg.results) 
+			m.results.results.SetItems(msg.results)
 		}
+		return m, getPackageInfo(msg.results[0].(search.Result).Link)
 	}
-
+	
 	var cmd tea.Cmd
-	m.input, cmd = m.input.Update(msg)
-	cmds = append(cmds, cmd)
-
-	if _, ok := msg.(tea.WindowSizeMsg); !ok {
+	
+	switch m.state {
+	case StateInput:
+		m.input, cmd = m.input.Update(msg)
+		return m, cmd
+		
+	case StateResults:
+		// Only update results component when in results state
 		m.results, cmd = m.results.Update(msg)
-		cmds = append(cmds, cmd)
+		return m, cmd
+		
+	case StateDetail:
+		return m, getPackageInfo(m.results.results.SelectedItem().(search.Result).Link)
 	}
-
-	return m, tea.Batch(cmds...)
+	
+	return m, nil
 }
 
 func (m AppModel) View() string {
@@ -108,12 +129,14 @@ func (m AppModel) View() string {
 
 	header := TitleStyle.Render("Go Package Search") + "\n\n" +
 			InputPromptStyle.Render() + m.input.View() + "\n\n"
-	
+		
 	switch m.state {
 	case StateInput:
 		content = header + StatusMessageStyle(m.status)
 	case StateResults:
 		content = header + m.results.View()
+	case StateDetail:
+		content = fmt.Sprintln("Detail: aa")
 	}
 
 	return DocStyle.Render(content)

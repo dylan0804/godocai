@@ -9,6 +9,12 @@ var (
 	highlight = lipgloss.AdaptiveColor{Light: "#874BFD", Dark: "#7D56F4"}
 	special   = lipgloss.AdaptiveColor{Light: "#43BF6D", Dark: "#73F59F"}
 
+	PrimaryColor = lipgloss.Color("#9D50BB")
+    SecondaryColor = lipgloss.Color("#EEEEEE")
+    SubtleColor = lipgloss.Color("#666666")
+    SelectedBg = lipgloss.Color("#6A3093")
+    
+
 	DocStyle = lipgloss.NewStyle().Margin(1, 2)
 
 	TitleStyle = lipgloss.NewStyle().

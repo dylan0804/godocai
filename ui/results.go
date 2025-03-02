@@ -1,50 +1,58 @@
 package ui
 
 import (
-	"fmt"
-
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/dylan0804/godocai/search"
 )
 
 type ResultsModel struct {
 	results  list.Model
 }
 
+type ItemSelectedMsg struct {
+	Item search.Result
+}
+
 func NewDefaultDelegate() list.DefaultDelegate {
     d := list.DefaultDelegate{}
     d.ShowDescription = true
     
-    // More contrasting color palette
-    titleColor := lipgloss.Color("#36CFC9") 
-    descColor := lipgloss.Color("#DDDDDD")     
-    
 	// normal items
-    d.Styles.NormalTitle = lipgloss.NewStyle().
+	d.Styles.NormalTitle = lipgloss.NewStyle().
         Bold(true).
-        Foreground(titleColor).
-        MarginLeft(2)
+        Foreground(PrimaryColor).
+        BorderLeft(true).
+        BorderStyle(lipgloss.NormalBorder()).
+        BorderForeground(SubtleColor).
+        PaddingLeft(1)
     
     d.Styles.NormalDesc = lipgloss.NewStyle().
-        Foreground(descColor).
-        MarginLeft(4)
+        Foreground(SecondaryColor).
+        BorderLeft(true).
+        BorderStyle(lipgloss.NormalBorder()).
+        BorderForeground(SubtleColor).
+        PaddingLeft(1)
     
-	// selected item
-    d.Styles.SelectedTitle = lipgloss.NewStyle().
-		Bold(true).
-		Foreground(lipgloss.Color("#000000")).
-		Background(lipgloss.Color("#36CFC9")).
-		Padding(0, 1).
-		MarginLeft(1)
-
-	d.Styles.SelectedDesc = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("#000000")). 
-		Background(lipgloss.Color("#36CFC9")).
-		Padding(0, 1).
-		MarginLeft(3)
+	// selected items
+	d.Styles.SelectedTitle = lipgloss.NewStyle().
+        Bold(true).
+        Foreground(lipgloss.Color("#FFFFFF")).
+        Background(SelectedBg).
+        BorderLeft(true).
+        BorderStyle(lipgloss.NormalBorder()).
+        BorderForeground(PrimaryColor).
+        Padding(0, 1, 0, 1)
     
-    // dimensions
+    d.Styles.SelectedDesc = lipgloss.NewStyle().
+        Foreground(lipgloss.Color("#EEEEEE")).
+        Background(SelectedBg).
+        BorderLeft(true).
+        BorderStyle(lipgloss.NormalBorder()).
+        BorderForeground(PrimaryColor).
+        Padding(0, 1, 0, 1)
+    
     d.SetHeight(2)
     d.SetSpacing(1)
     
@@ -78,8 +86,11 @@ func (m ResultsModel) Update(msg tea.Msg) (ResultsModel, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.results.SetSize(msg.Width, msg.Height - 8)
 	case tea.KeyMsg:
-		if msg.Type == tea.KeyEnter {
-			fmt.Println("Enter key pressed")
+		switch msg.String() {
+		case "enter":
+			if item, ok := m.results.SelectedItem().(search.Result); ok {
+				return m, HandleItemSelected(item)
+			}
 		}
 	}
 	
@@ -91,4 +102,10 @@ func (m ResultsModel) Update(msg tea.Msg) (ResultsModel, tea.Cmd) {
 
 func (m ResultsModel) View() string {
 	return m.results.View()
+}
+
+func HandleItemSelected(item search.Result) tea.Cmd {
+	return func() tea.Msg {
+		return ItemSelectedMsg{Item: item}
+	}
 }

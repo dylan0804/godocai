@@ -10,6 +10,10 @@ type InputModel struct {
 	width     int
 }
 
+type InputSubmitMsg struct {
+	Value string
+}
+
 func NewInputModel() *InputModel {
 	ti := textinput.New()
 	ti.Placeholder = "Enter package to search..."
@@ -28,6 +32,16 @@ func (m *InputModel) Init() tea.Cmd {
 }
 
 func (m *InputModel) Update(msg tea.Msg) (*InputModel, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "enter":
+			return m, func() tea.Msg {
+				return InputSubmitMsg{Value: m.textInput.Value()}
+			}
+		}
+	}
+
 	var cmd tea.Cmd
 	m.textInput, cmd = m.textInput.Update(msg)
 	return m, cmd
