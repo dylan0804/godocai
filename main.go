@@ -5,6 +5,7 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/dylan0804/godocai/shared"
 	"github.com/dylan0804/godocai/ui"
 )
 
@@ -14,6 +15,8 @@ func main() {
 		tea.WithAltScreen(),
 		tea.WithMouseCellMotion(),
 	)
+
+	shared.Program = p
 
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Error running program: %v\n", err)

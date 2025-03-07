@@ -92,6 +92,9 @@ func (m ResultsModel) Update(msg tea.Msg) (ResultsModel, tea.Cmd) {
 				return m, HandleItemSelected(item)
 			}
 		}
+	case SearchResultsMsg:
+		m.results.SetItems(msg.results)
+		return m, m.ChangeState(StateResults)
 	}
 	
 	m.results, cmd = m.results.Update(msg)
@@ -99,6 +102,7 @@ func (m ResultsModel) Update(msg tea.Msg) (ResultsModel, tea.Cmd) {
 
 	return m, tea.Batch(cmds...)
 }
+
 
 func (m ResultsModel) View() string {
 	return m.results.View()
@@ -109,3 +113,10 @@ func HandleItemSelected(item search.Result) tea.Cmd {
 		return ItemSelectedMsg{Item: item}
 	}
 }
+
+func (m ResultsModel) ChangeState(state ViewState) tea.Cmd {
+	return func() tea.Msg {
+		return StateChangeMsg{State: state}
+	}
+}
+

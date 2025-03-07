@@ -2,29 +2,21 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 
-	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/dylan0804/godocai/ai"
 	"github.com/dylan0804/godocai/search"
 )
-
-type searchResultsMsg struct {
-	results []list.Item
-	err     error
+type packageInfoMsg struct {
+	info search.TypeInfo
+	err  error
 }
 
-func searchPackages(query string) tea.Cmd {
+func getPackageInfo(link string, anchor string) tea.Cmd {
 	return func() tea.Msg {
-		results, err := search.Search(query)
-		return searchResultsMsg{results, err}
-	}
-}
-
-func getPackageInfo(link string) tea.Cmd {
-	return func() tea.Msg {
-		search.GetPackageInfo(link)
-		fmt.Println("Package info fetched")
-		return nil
+		result, err := search.GetPackageInfo(link, anchor)
+		return packageInfoMsg{*result, err}
 	}
 }
 
@@ -34,11 +26,17 @@ const (
 	StateInput ViewState = iota
 	StateResults
 	StateDetail
+	StateLoading
 )
+
+type StateChangeMsg struct {
+	State ViewState
+}
 
 type AppModel struct {
 	input   *InputModel
 	results ResultsModel
+	detail  *DetailModel
 	state   ViewState
 	status  string
 	width   int
@@ -50,6 +48,7 @@ func NewAppModel() AppModel {
 	return AppModel{
 		input:   NewInputModel(),
 		results: NewResultsModel(),
+		detail:  NewDetailModel(),
 		state:   StateInput,
 	}
 }
@@ -62,66 +61,58 @@ func (m AppModel) Init() tea.Cmd {
 }
 
 func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var (
+		cmd tea.Cmd
+		cmds []tea.Cmd
+	)
+
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		
-		m.input = m.input.SetWidth(m.width)
-		
-		var cmd tea.Cmd
-		m.results, cmd = m.results.Update(msg)
-		return m, cmd
-		
+
+		m.detail.SetWidth(m.width)
+		m.detail.SetHeight(m.height - 8)
+
+		m.detail.SetViewportWidth(m.width)
+		m.detail.SetViewportHeight(m.height - 8)
+
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
 		}
-		
+
 	case ItemSelectedMsg:
+		link := strings.SplitAfter(msg.Item.Link, "#")[1]
+		return m, getPackageInfo(msg.Item.Link, link)
+
+	case packageInfoMsg:
+		m.detail.ready = true
 		m.state = StateDetail
-		return m, nil
-		
-	case InputSubmitMsg:
-		if m.loading || msg.Value == "" {
-			return m, nil
-		}
-		
-		m.loading = true
-		m.status = "Searching..."
-		return m, searchPackages(msg.Value)
-		
-	case searchResultsMsg:
-		m.loading = false
-		m.status = ""
-		m.state = StateResults
-		
+
 		if msg.err != nil {
 			m.status = fmt.Sprintf("Error: %s", msg.err)
 		} else {
-			m.results.results.SetItems(msg.results)
+			m.detail.info = msg.info
+			return m, ai.StreamAIExplanation(msg.info.Description)
 		}
-		return m, getPackageInfo(msg.results[0].(search.Result).Link)
+	
+	case StateChangeMsg:
+		m.state = msg.State
+		return m, nil
 	}
-	
-	var cmd tea.Cmd
-	
-	switch m.state {
-	case StateInput:
-		m.input, cmd = m.input.Update(msg)
-		return m, cmd
 		
-	case StateResults:
-		// Only update results component when in results state
-		m.results, cmd = m.results.Update(msg)
-		return m, cmd
-		
-	case StateDetail:
-		return m, getPackageInfo(m.results.results.SelectedItem().(search.Result).Link)
-	}
+	m.input, cmd = m.input.Update(msg)
+	cmds = append(cmds, cmd)
+
+	m.results, cmd = m.results.Update(msg)
+	cmds = append(cmds, cmd)
+
+	m.detail, cmd = m.detail.Update(msg)
+	cmds = append(cmds, cmd)
 	
-	return m, nil
+	return m, tea.Batch(cmds...)
 }
 
 func (m AppModel) View() string {
@@ -136,7 +127,9 @@ func (m AppModel) View() string {
 	case StateResults:
 		content = header + m.results.View()
 	case StateDetail:
-		content = fmt.Sprintln("Detail: aa")
+		content = m.detail.View()
+	case StateLoading:
+		content = header + StatusMessageStyle("Loading...")
 	}
 
 	return DocStyle.Render(content)

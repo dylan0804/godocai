@@ -1,13 +1,25 @@
 package search
 
 import (
-	"fmt"
 	"net/url"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/gocolly/colly"
 )
+
+type MethodInfo struct {
+	Name        string
+	Signature   string
+	Description []string
+}
+
+type TypeInfo struct {
+	Name        string
+	Description string
+	Methods     []MethodInfo
+	Examples    []string
+}
 
 type Result struct {
     title       string
@@ -48,10 +60,20 @@ func Search(term string) ([]list.Item, error) {
 	return results, err
 } 
 
-func GetPackageInfo(packageLink string) {
+func GetPackageInfo(packageLink string, anchor string) (*TypeInfo, error) {
 	c := colly.NewCollector()
 
-	fmt.Println("https://pkg.go.dev/" + packageLink)
+	result := TypeInfo{}
+
+	selector := "div.Documentation-type h4#" + anchor
+	c.OnHTML(selector, func(e *colly.HTMLElement) {
+		result.Name = strings.TrimSpace(e.Text)
+		result.Description = strings.TrimSpace(e.DOM.Next().Text())
+	})
 
 	c.Visit("https://pkg.go.dev/" + packageLink)
+	
+	return &TypeInfo{
+		Name: result.Name,
+	}, nil
 }

@@ -48,4 +48,42 @@ var (
 
 	SelectedResultStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.AdaptiveColor{Light: "#000000", Dark: "#FFFFFF"})
+
+	// detail
+	TypeNameStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("#9D50BB")).
+		BorderBottom(true).
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("#6A3093")).
+		MarginBottom(1).
+		Padding(0, 0, 0, 0)
+
+	DescriptionStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#EEEEEE")).
+		MarginBottom(1).
+		Padding(0, 1)
+
+	SectionTitleStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("#9D50BB")).
+		PaddingBottom(1)
+
+	MethodNameStyle = lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("#BBBBBB"))
+
+	SignatureStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#DDDDDD")).
+		Background(lipgloss.Color("#333333")).
+		Padding(1).
+		MarginTop(1).
+		MarginBottom(1)
+
+	ExampleStyle = lipgloss.NewStyle().
+		Foreground(lipgloss.Color("#DDDDDD")).
+		Background(lipgloss.Color("#333333")).
+		Padding(1).
+		MarginTop(1).
+		MarginBottom(1)
 ) 
