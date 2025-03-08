@@ -41,7 +41,6 @@ type AppModel struct {
 	status  string
 	width   int
 	height  int
-	loading bool
 }
 
 func NewAppModel() AppModel {
@@ -95,6 +94,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.status = fmt.Sprintf("Error: %s", msg.err)
 		} else {
 			m.detail.info = msg.info
+			fmt.Println(msg.info.Description)
 			return m, ai.StreamAIExplanation(msg.info.Description)
 		}
 	

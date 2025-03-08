@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/dylan0804/godocai/shared"
@@ -30,20 +29,13 @@ type AIStreamMsg struct {
 }
 
 func Generate(prompt string, updateFn func(string, bool)) error {
-	request := Request{
-		Model: "deepseek-r1:14b",
-		Prompt: fmt.Sprintf(`Generate a practical explanation for the Go package '%s' that includes:
-		1. One-sentence overview of the package's main purpose
-		2. 2-3 key functions/methods with simple examples
-		3. Common use cases (1-2 sentences each)
-		4. Gotchas or important notes beginners should know
-		5. A minimal working example showing basic usage (10-15 lines max)
-		Format everything in clear sections with headers. Use conversational language as if explaining to someone new to Go. 
-		Focus on practical application rather than theory.`, prompt),
-		Stream: true,
-	}
+	fmt.Println(prompt)
 
-	fmt.Println(request.Prompt)
+	request := Request{
+        Model: "deepseek-r1:14b",
+        Prompt: fmt.Sprintf(`Generate a practical explanation for the following Go type definition: %s`, prompt),
+        Stream: true,
+    }
 
 	js, err := json.Marshal(&request)
 	if err != nil {
@@ -86,9 +78,6 @@ func Generate(prompt string, updateFn func(string, bool)) error {
 }
 
 func StreamAIExplanation(description string) tea.Cmd {
-	fmt.Println(description)
-	time.Sleep(2000 * time.Second)
-
 	return func() tea.Msg {
 		ch := make(chan tea.Msg)
 

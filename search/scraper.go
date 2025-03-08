@@ -72,7 +72,7 @@ func GetPackageInfo(packageLink string, anchor string) (*TypeInfo, error) {
 	})
 
 	c.Visit("https://pkg.go.dev/" + packageLink)
-	
+
 	return &TypeInfo{
 		Name: result.Name,
 	}, nil
